@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Capturador de Videos",
+  "version": "1.0",
+  "description": "Busca y lista enlaces de reproductores de Vimeo y otras operaciones en la página activa.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "cookies",
+    "clipboardWrite",
+    "clipboardRead"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon128.png"
+  }
+}

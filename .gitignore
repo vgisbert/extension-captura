@@ -1,0 +1,24 @@
+# Binarios y ejecutables grandes (pesados e innecesarios en GitHub)
+*.exe
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe
+yt-dlp.exe
+Configuración en github.bat
+Instrucciones de carga de la extensión.docx
+README.docx
+*.lnk
+
+
+# Archivos temporales generados por la app
+cookies_*.txt
+*.part
+*.ytdl
+
+# Carpetas de desarrollo y respaldos
+node_modules/
+backup/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
