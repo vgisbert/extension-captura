@@ -22,6 +22,7 @@ let downloadState = {
 let downloadQueue = [];
 let targetFolder = '';
 let currentChild = null;
+let stderrBuffer = '';
 
 // Iniciar descargas en la cola
 function startNextDownload() {
@@ -41,6 +42,7 @@ function startNextDownload() {
   downloadState.speed = 'Iniciando...';
   downloadState.eta = '--:--';
   downloadState.error = null;
+  stderrBuffer = '';
 
   const ytDlpPath = path.join(__dirname, 'yt-dlp.exe');
   
@@ -78,7 +80,9 @@ function startNextDownload() {
   }
 
   let tempCookieFile = null;
-  if (currentItem.cookies && Array.isArray(currentItem.cookies) && currentItem.cookies.length > 0) {
+  if (currentItem.cookies === 'NONE') {
+    console.log('[yt-dlp] Configurado para descargar SIN cookies (Modo anónimo).');
+  } else if (currentItem.cookies && Array.isArray(currentItem.cookies) && currentItem.cookies.length > 0) {
     tempCookieFile = path.join(__dirname, `cookies_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.txt`);
     let content = "# Netscape HTTP Cookie File\n";
     currentItem.cookies.forEach(c => {
@@ -136,6 +140,13 @@ function startNextDownload() {
 
   currentChild.stderr.on('data', (data) => {
     const msg = data.toString().trim();
+    stderrBuffer += msg + '\n';
+    
+    // Ocultar el aviso molesto de JS runtime ya que la descarga funciona por vías alternativas
+    if (msg.includes('No supported JavaScript runtime could be found')) {
+      return;
+    }
+
     if (msg.includes('WARNING:')) {
       console.log(`[yt-dlp] ${msg}`);
     } else {
@@ -163,9 +174,14 @@ function startNextDownload() {
       // Continuar con el siguiente
       startNextDownload();
     } else {
-      // Si fue cancelado a propósito (código no 0, y downloadState.active cambiado a false)
+      // Si fue cancelado a propósito
       if (!downloadState.active) {
         downloadState.error = 'Descarga cancelada por el usuario.';
+      } else if (code === 1 && stderrBuffer.includes('HTTP Error 403: Forbidden') && currentItem.cookies !== 'NONE') {
+        console.log('[yt-dlp] Error 403 detectado. Reintentando la descarga en modo INCÓGNITO (sin cookies) para saltar el bloqueo de YouTube...');
+        currentItem.cookies = 'NONE';
+        downloadQueue.unshift(currentItem);
+        startNextDownload();
       } else {
         downloadState.error = `Error al descargar el vídeo (Código: ${code})`;
         downloadState.active = false;

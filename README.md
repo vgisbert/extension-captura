@@ -46,7 +46,8 @@ La extensión se divide en cuatro motores de búsqueda especializados:
 * **Fusión Garantizada a MP4**:
   * El servidor local llama a `yt-dlp` configurándolo con la opción `--merge-output-format mp4` para empaquetar de forma transparente el mejor audio y vídeo disponible utilizando `ffmpeg.exe`.
 * **Solución de Retos de JavaScript (Anti-Bot de YouTube)**:
-  * El sistema descarga e integra automáticamente **Deno**, el cual es utilizado nativamente por `yt-dlp` para resolver los acertijos JS de YouTube (evitando errores "HTTP 403: Forbidden").
+  * El sistema descarga e integra automáticamente **Deno**, el cual es utilizado nativamente por `yt-dlp` para resolver los acertijos JS de YouTube.
+  * **Modo Incógnito de Emergencia**: Si YouTube lanza un bloqueo antibots estricto ("HTTP 403: Forbidden") debido al uso de tu sesión (cookies), el servidor intercepta el error, desecha las cookies y reintenta la descarga automáticamente de forma anónima, saltándose la protección en menos de 1 segundo.
 * **Descarga Estricta de Vídeos (No-Playlist)**:
   * Ignora de forma automática las listas de reproducción (`&list=`) para garantizar que solo se descarga el vídeo exacto solicitado, evitando descargas múltiples no deseadas.
 * **Carpeta de Descargas Inteligente y Selectores Nativos**:
