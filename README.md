@@ -45,8 +45,12 @@ La extensión se divide en cuatro motores de búsqueda especializados:
   * Pulsa el botón de carpeta al lado de iniciar descarga para **abrir directamente el explorador de archivos en la carpeta de destino** (creándola de forma automática si no existe).
 * **Fusión Garantizada a MP4**:
   * El servidor local llama a `yt-dlp` configurándolo con la opción `--merge-output-format mp4` para empaquetar de forma transparente el mejor audio y vídeo disponible utilizando `ffmpeg.exe`.
-* **Solución de Avisos de JavaScript**:
-  * Utiliza la ruta de Node.js local (`process.execPath`) pasándosela a `yt-dlp` con `--js-runtimes` para evitar avisos sobre la ausencia de motor JS en descargas de YouTube.
+* **Solución de Retos de JavaScript (Anti-Bot de YouTube)**:
+  * El sistema descarga e integra automáticamente **Deno**, el cual es utilizado nativamente por `yt-dlp` para resolver los acertijos JS de YouTube (evitando errores "HTTP 403: Forbidden").
+* **Descarga Estricta de Vídeos (No-Playlist)**:
+  * Ignora de forma automática las listas de reproducción (`&list=`) para garantizar que solo se descarga el vídeo exacto solicitado, evitando descargas múltiples no deseadas.
+* **Carpeta de Descargas Inteligente y Selectores Nativos**:
+  * Por defecto, detecta dinámicamente la carpeta de *Descargas* de tu usuario de Windows. Además, el botón "Examinar" utiliza PowerShell en Base64 para mostrar siempre el diálogo de selección en primer plano, sin bloqueos.
 * **Cancelar Descarga**:
   * Detiene de manera inmediata el proceso de descarga activo limpiando la cola restante mediante la finalización forzada del árbol de procesos (`taskkill /pid [pid] /f /t` en Windows).
   * **Limpieza Automática**: Borra automáticamente los archivos temporales e incompletos (como extensiones `.part`, `.ytdl`, `.temp`, etc.) generados por la descarga activa para no dejar basura en tu carpeta.
@@ -62,11 +66,12 @@ La extensión se divide en cuatro motores de búsqueda especializados:
 * **popup.js**: Lógica del popup, inyección del scraper en la pestaña y comunicación de red.
 * **server.js**: Servidor Node.js local que recibe las peticiones, gestiona la cola y controla el ciclo de vida de los subprocesos de descarga.
 * **icon128.png**: Logotipo oficial de la extensión.
+* **descarga_dependencias.bat**: Script inicial que comprueba y descarga automáticamente Node.js, Deno, yt-dlp y ffmpeg para que todo funcione de forma portátil sin requerir instalación global en Windows.
 * **Servidor_descargas.bat**: Archivo por lotes que abre y levanta el servidor local Node.js.
 * **Actualizar_yt-dlp.bat**: Script de Windows que actualiza `yt-dlp.exe` automáticamente a la última versión.
-* **yt-dlp.exe**: Motor de descarga de media.
+* **yt-dlp.exe, deno.exe**: Motor de descarga de medios y su intérprete JavaScript auxiliar para YouTube.
 * **ffmpeg.exe, ffplay.exe, ffprobe.exe**: Utilidades de procesamiento de audio y vídeo de `yt-dlp`.
-* **backup/**: Carpeta que contiene una copia de seguridad exacta de todo el código del proyecto antes de aplicar ajustes experimentales.
+* **backup/**: Carpeta que contiene copias de seguridad del proyecto.
 
 ---
 

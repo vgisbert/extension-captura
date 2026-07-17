@@ -68,9 +68,9 @@ function startNextDownload() {
     '-P', targetFolder,
     '-o', formatTemplate,
     '--ffmpeg-location', __dirname,
-    '--js-runtimes', `node:${process.execPath}`,
     '--merge-output-format', 'mp4',
-    '--no-check-certificate'
+    '--no-check-certificate',
+    '--no-playlist'
   ];
 
   if (isAudioUrl) {
@@ -109,7 +109,9 @@ function startNextDownload() {
 
   console.log(`Iniciando descarga: ${currentItem.url} en ${targetFolder}`);
   console.log(`Comando completo: yt-dlp.exe ${args.join(' ')}`);
-  currentChild = spawn(ytDlpPath, args, { cwd: __dirname });
+  const envVars = Object.assign({}, process.env);
+  envVars.PATH = `${__dirname};${envVars.PATH || ''}`;
+  currentChild = spawn(ytDlpPath, args, { cwd: __dirname, env: envVars });
 
   currentChild.stdout.on('data', (data) => {
     const output = data.toString();
@@ -133,7 +135,12 @@ function startNextDownload() {
   });
 
   currentChild.stderr.on('data', (data) => {
-    console.error(`Error en yt-dlp stderr: ${data}`);
+    const msg = data.toString().trim();
+    if (msg.includes('WARNING:')) {
+      console.log(`[yt-dlp] ${msg}`);
+    } else {
+      console.error(`[yt-dlp ERROR] ${msg}`);
+    }
   });
 
   currentChild.on('close', (code) => {
@@ -189,9 +196,25 @@ const server = http.createServer((req, res) => {
 
   // Ruta para abrir el diálogo nativo de Windows y seleccionar carpeta
   if (req.url === '/api/select-folder' && req.method === 'POST') {
-    const psCommand = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.ShowNewFolderButton = $true; $f.Description = 'Selecciona la carpeta de descarga'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath }`;
+    const psScript = `
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.FolderBrowserDialog
+$f.Description = 'Selecciona la carpeta de descarga'
+$f.ShowNewFolderButton = $true
+$form = New-Object System.Windows.Forms.Form
+$form.TopMost = $true
+$form.ShowInTaskbar = $false
+$form.WindowState = 'Minimized'
+$form.Show()
+$form.BringToFront()
+if ($f.ShowDialog($form) -eq 'OK') {
+  Write-Output $f.SelectedPath
+}
+$form.Dispose()
+`;
+    const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
     
-    exec(`powershell -NoProfile -Command "${psCommand}"`, (error, stdout, stderr) => {
+    exec(`powershell -Sta -NoProfile -WindowStyle Hidden -EncodedCommand ${b64}`, (error, stdout, stderr) => {
       if (error) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
@@ -201,6 +224,14 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ folder: selectedPath }));
     });
+    return;
+  }
+
+  // Ruta para obtener la carpeta de descargas por defecto
+  if (req.url === '/api/default-folder' && req.method === 'GET') {
+    const downloadsPath = path.join(require('os').homedir(), 'Downloads');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ folder: downloadsPath }));
     return;
   }
 

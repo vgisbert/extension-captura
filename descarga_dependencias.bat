@@ -3,8 +3,35 @@ title Descargar Dependencias de Captura de Video
 cd /d "%~dp0"
 
 echo ======================================================
-echo  Descargando dependencias (yt-dlp y ffmpeg)
+echo  Descargando dependencias (Node.js, yt-dlp y ffmpeg)
 echo ======================================================
+echo.
+
+:: Verificar si Node.js esta instalado o descargarlo
+where node >nul 2>nul
+if %errorlevel% neq 0 (
+    if not exist node.exe (
+        echo [PROCESO] Node.js no encontrado. Descargando node.exe v20.18.0...
+        curl -L -o node.exe https://nodejs.org/dist/v20.18.0/win-x64/node.exe
+        if errorlevel 1 (
+            echo [PROCESO] Fallo curl, intentando descargar con PowerShell...
+            powershell -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/win-x64/node.exe' -OutFile 'node.exe'"
+        )
+    ) else (
+        echo [OK] node.exe ya existe localmente.
+    )
+) else (
+    echo [OK] Node.js ya esta instalado en el sistema.
+)
+echo.
+
+:: Descargar Deno (Para resolver los retos JS de YouTube con yt-dlp)
+if not exist deno.exe (
+    echo [PROCESO] Descargando Deno para soportar JavaScript en YouTube...
+    powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://github.com/denoland/deno/releases/download/v1.45.2/deno-x86_64-pc-windows-msvc.zip' -OutFile 'deno.zip'; Expand-Archive -Path 'deno.zip' -DestinationPath '.' -Force; Remove-Item 'deno.zip'"
+) else (
+    echo [OK] deno.exe ya existe.
+)
 echo.
 
 :: Descargar yt-dlp.exe si no existe
@@ -77,6 +104,11 @@ echo.
 echo ======================================================
 echo  Verificando archivos descargados:
 echo ======================================================
+where node >nul 2>nul
+if not errorlevel 1 (echo  [OK] Node.js) else (
+    if exist node.exe (echo  [OK] node.exe) else (echo  [ERROR] Falta Node.js)
+)
+if exist deno.exe (echo  [OK] deno.exe) else (echo  [ERROR] Falta deno.exe)
 if exist yt-dlp.exe (echo  [OK] yt-dlp.exe) else (echo  [ERROR] Falta yt-dlp.exe)
 if exist ffmpeg.exe (echo  [OK] ffmpeg.exe) else (echo  [ERROR] Falta ffmpeg.exe)
 if exist ffplay.exe (echo  [OK] ffplay.exe) else (echo  [ERROR] Falta ffplay.exe)

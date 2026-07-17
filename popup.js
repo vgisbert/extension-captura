@@ -29,9 +29,19 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Cargar carpeta de descargas guardada
   if (chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(['downloadDir'], (result) => {
+    chrome.storage.local.get(['downloadDir'], async (result) => {
       if (result && result.downloadDir && downloadDirInput) {
         downloadDirInput.value = result.downloadDir;
+      } else {
+        try {
+          const res = await fetch('http://localhost:8000/api/default-folder');
+          const data = await res.json();
+          if (data && data.folder && downloadDirInput) {
+            downloadDirInput.value = data.folder;
+          }
+        } catch (err) {
+          console.warn('Servidor local no disponible para obtener carpeta por defecto.');
+        }
       }
     });
   }
