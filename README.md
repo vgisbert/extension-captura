@@ -78,7 +78,7 @@ La extensión se divide en cuatro motores de búsqueda especializados:
 
 ## 📖 Instrucciones de Uso Rápido
 
-1. **Arranca el Servidor**: Haz doble clic sobre **[Servidor_descargas.bat](file:///d:/Documentos/Antigravity/Extensi%C3%B3n%20de%20captura/Servidor_descargas.bat)**. Verás la consola confirmando que se ejecuta en el puerto `8000`. Mantén esta ventana abierta.
-2. **Carga la Extensión**: Accede a `chrome://extensions/` en Chrome, activa el *Modo de desarrollador* (esquina superior derecha), pulsa *Cargar descomprimida* y selecciona la carpeta: `d:\Documentos\Antigravity\Extensión de captura`.
+1. **Arranca el Servidor**: Haz doble clic sobre **Servidor_descargas.bat**. Verás la consola confirmando que se ejecuta en el puerto `8000`. Mantén esta ventana abierta.
+2. **Carga la Extensión**: Accede a `chrome://extensions/` en Chrome, activa el *Modo de desarrollador* (esquina superior derecha), pulsa *Cargar descomprimida* y selecciona la carpeta de esta extensión (la carpeta donde se encuentra este archivo README).
 3. **Fija la extensión**: Haz clic en el rompecabezas 🧩 de la barra de Chrome y pincha la chincheta 📌 del capturador.
 4. **¡Prueba y descarga!**: Navega a cualquier página con contenidos multimedia, pulsa el botón del scraper correspondiente, selecciona la carpeta de descarga, marca los casilleros de los archivos que te interesen y pulsa **Comenzar Descarga**.
