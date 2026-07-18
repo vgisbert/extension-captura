@@ -3,6 +3,28 @@ const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// Configuración de logging global
+const logFile = fs.createWriteStream(path.join(__dirname, 'server.log'), { flags: 'a' });
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function(...args) {
+  const msg = `[${new Date().toISOString()}] LOG: ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}\n`;
+  logFile.write(msg);
+  originalLog.apply(console, args);
+};
+
+console.error = function(...args) {
+  const msg = `[${new Date().toISOString()}] ERROR: ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}\n`;
+  logFile.write(msg);
+  originalError.apply(console, args);
+};
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
 const PORT = 8000;
 
 // Estado global de las descargas
@@ -74,6 +96,10 @@ function startNextDownload() {
     '--no-check-certificate',
     '--no-playlist'
   ];
+
+  if (currentItem.password) {
+    args.push('--video-password', currentItem.password);
+  }
 
   if (isAudioUrl) {
     args.push('--extract-audio', '--audio-format', 'mp3');
@@ -290,11 +316,13 @@ $form.Dispose()
         downloadQueue = data.urls.map(item => {
           const itemUrl = (typeof item === 'string') ? item : item.url;
           const addId = (typeof item === 'string') ? !!data.addIdInBrackets : !!item.addIdInBrackets;
+          const pass = (typeof item === 'object') ? item.password : null;
           return {
             url: itemUrl,
             addIdInBrackets: addId,
             referrer: data.referrer || '',
-            cookies: data.cookies || ''
+            cookies: data.cookies || '',
+            password: pass
           };
         });
         downloadState.total = downloadQueue.length;

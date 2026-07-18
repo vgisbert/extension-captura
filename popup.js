@@ -437,12 +437,16 @@ document.addEventListener('DOMContentLoaded', () => {
                   title: item.title,
                   url: item.url,
                   isVimeo: (searchType === 'vimeo' || item.isVimeo || urlLower.includes('vimeo.com')),
-                  searchType: searchType || item.searchType || 'todo'
+                  searchType: searchType || item.searchType || 'todo',
+                  password: item.password
                 });
               } else {
                 const existingItem = accumulated[existingIndex];
                 if (isGeneric(existingItem.title) && !isGeneric(item.title)) {
                   existingItem.title = item.title;
+                }
+                if (item.password && !existingItem.password) {
+                  existingItem.password = item.password;
                 }
               }
             });
@@ -456,6 +460,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const urlRegex = /(https?:\/\/[^\s"'>]+)/gi;
             const urls = clipboardText.match(urlRegex) || [];
             const clipboardItems = [];
+            
+            // Buscar una contraseña en el texto del portapapeles
+            let password = null;
+            const passMatch = clipboardText.match(/(?:password|contrase[ñn]a|clave):\s*([^\s]+)/i);
+            if (passMatch) {
+              password = passMatch[1];
+            }
             
             const videoExtensions = /\.(mp4|m4v|mkv|mov|webm|avi|flv|ogv)(?:\?.*)?$/i;
             const audioExtensions = /\.(mp3|wav|m4a|ogg|aac|flac)(?:\?.*)?$/i;
@@ -471,10 +482,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
               } else if (urlLower.includes('vimeo.com')) {
                 clipboardItems.push({
-                  title: 'Enlace de Vimeo (Portapapeles)',
+                  title: 'Enlace de Vimeo (Portapapeles)' + (password ? ' 🔒' : ''),
                   url: url,
                   searchType: 'vimeo',
-                  isVimeo: true
+                  isVimeo: true,
+                  password: password
                 });
               } else if (urlLower.match(videoExtensions)) {
                 clipboardItems.push({
@@ -639,7 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = currentResults[index];
       urlsToDownload.push({
         url: item.url,
-        addIdInBrackets: !!item.isVimeo || (currentSearchType === 'vimeo')
+        addIdInBrackets: !!item.isVimeo || (currentSearchType === 'vimeo'),
+        password: item.password
       });
     });
 

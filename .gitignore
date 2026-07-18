@@ -14,6 +14,7 @@ README.docx
 cookies_*.txt
 *.part
 *.ytdl
+server.log
 
 # Carpetas de desarrollo y respaldos
 node_modules/
