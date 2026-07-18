@@ -458,21 +458,52 @@ document.addEventListener('DOMContentLoaded', () => {
           const clipboardText = await navigator.clipboard.readText();
           if (clipboardText) {
             const urlRegex = /(https?:\/\/[^\s"'>]+)/gi;
-            const urls = clipboardText.match(urlRegex) || [];
-            const clipboardItems = [];
+            const passRegex = /(?:password|contrase[ñn]a|clave):\s*([^\s]+)/gi;
             
-            // Buscar una contraseña en el texto del portapapeles
-            let password = null;
-            const passMatch = clipboardText.match(/(?:password|contrase[ñn]a|clave):\s*([^\s]+)/i);
-            if (passMatch) {
-              password = passMatch[1];
+            const urlsData = [];
+            let match;
+            while ((match = urlRegex.exec(clipboardText)) !== null) {
+              urlsData.push({ url: match[1], start: match.index, end: match.index + match[1].length, password: null });
             }
             
+            const passwordsData = [];
+            while ((match = passRegex.exec(clipboardText)) !== null) {
+              passwordsData.push({ pass: match[1], start: match.index, end: match.index + match[0].length });
+            }
+
+            passwordsData.forEach(p => {
+              if (urlsData.length === 0) return;
+              let closestUrl = urlsData[0];
+              let minDistance = Infinity;
+              for (let i = 0; i < urlsData.length; i++) {
+                const u = urlsData[i];
+                let dist = 0;
+                if (p.start >= u.end) {
+                  const segment = clipboardText.substring(u.end, p.start);
+                  const newlines = (segment.match(/\n/g) || []).length;
+                  dist = (p.start - u.end) + (newlines * 10000);
+                } else if (u.start >= p.end) {
+                  const segment = clipboardText.substring(p.end, u.start);
+                  const newlines = (segment.match(/\n/g) || []).length;
+                  dist = (u.start - p.end) + (newlines * 10000);
+                }
+                
+                if (dist < minDistance) {
+                  minDistance = dist;
+                  closestUrl = u;
+                }
+              }
+              closestUrl.password = p.pass;
+            });
+
+            const clipboardItems = [];
             const videoExtensions = /\.(mp4|m4v|mkv|mov|webm|avi|flv|ogv)(?:\?.*)?$/i;
             const audioExtensions = /\.(mp3|wav|m4a|ogg|aac|flac)(?:\?.*)?$/i;
             const docExtensions = /\.(zip|rar|7z|pdf|epub|docx|txt)(?:\?.*)?$/i;
 
-            urls.forEach(url => {
+            urlsData.forEach(uData => {
+              const url = uData.url;
+              const password = uData.password;
               const urlLower = url.toLowerCase();
               if (urlLower.includes('youtube.com/watch') || urlLower.includes('youtu.be/') || urlLower.includes('youtube.com/shorts/')) {
                 clipboardItems.push({

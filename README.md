@@ -18,7 +18,7 @@ La extensión se divide en cuatro motores de búsqueda especializados:
    * Detecta automáticamente reproductores integrados e iframes de Vimeo (incluso en contenedores complejos o privados como Google Sites).
    * Extrae de forma inteligente el título del vídeo buscando etiquetas de cabecera o textos inmediatamente anteriores en el DOM.
    * Decodifica entidades HTML (como `&amp;` por `&`) en las URLs capturadas para garantizar enlaces limpios compatibles con `yt-dlp`.
-   * **Detección de Contraseñas**: Al importar un enlace desde el portapapeles, detecta y aplica automáticamente contraseñas de vídeos protegidos (ej. "Contraseña: ...") durante la descarga.
+   * **Detección de Contraseñas Inteligente**: Al importar enlaces desde el portapapeles, soporta múltiples vídeos con contraseñas distintas (ej. "Contraseña: ..."), emparejando automáticamente cada clave con su vídeo correspondiente basándose en su proximidad física en el texto y saltos de línea.
 
 2. **Buscar Vídeo (Vídeos Directos)**:
    * Escanea la página activa localizando reproductores nativos `<video>`, etiquetas `<source>` y enlaces directos a ficheros de vídeo (`.mp4`, `.m4v`, `.mkv`, `.mov`, `.webm`, `.avi`, `.flv`, `.ogv`).
