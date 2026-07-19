@@ -11,11 +11,11 @@ echo.
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     if not exist node.exe (
-        echo [PROCESO] Node.js no encontrado. Descargando node.exe v20.18.0...
-        curl -L -o node.exe https://nodejs.org/dist/v20.18.0/win-x64/node.exe
+        echo [PROCESO] Node.js no encontrado. Descargando node.exe v26.5.0...
+        curl -L -o node.exe https://nodejs.org/dist/v26.5.0/win-x64/node.exe
         if errorlevel 1 (
             echo [PROCESO] Fallo curl, intentando descargar con PowerShell...
-            powershell -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/win-x64/node.exe' -OutFile 'node.exe'"
+            powershell -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v26.5.0/win-x64/node.exe' -OutFile 'node.exe'"
         )
     ) else (
         echo [OK] node.exe ya existe localmente.
