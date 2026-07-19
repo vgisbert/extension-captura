@@ -418,17 +418,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const addResults = (list, searchType) => {
           if (list && Array.isArray(list)) {
             list.forEach(item => {
+              // Limpiar query params de la URL (?share=copy...)
+              if (item.url && item.url.includes('?')) {
+                item.url = item.url.split('?')[0];
+              }
               const urlLower = item.url.toLowerCase();
               let vimeoId = null;
-              if (urlLower.includes('player.vimeo.com/video/')) {
-                const match = urlLower.match(/\/video\/(\d+)/i);
-                if (match) vimeoId = match[1];
+              const vimeoMatch = urlLower.match(/vimeo\.com(?:\/video)?\/(\d+)/i);
+              if (vimeoMatch) {
+                vimeoId = vimeoMatch[1];
               }
 
               const isGeneric = title => !title || title === 'Vídeo de Vimeo' || title === 'vimeo' || title.includes('player') || title === 'Enlace de Vimeo' || title.includes('Portapapeles');
 
               const existingIndex = accumulated.findIndex(x => {
-                if (vimeoId && x.url.toLowerCase().includes('/video/' + vimeoId)) return true;
+                if (vimeoId) {
+                  const xVimeoMatch = x.url.toLowerCase().match(/vimeo\.com(?:\/video)?\/(\d+)/i);
+                  if (xVimeoMatch && xVimeoMatch[1] === vimeoId) return true;
+                }
                 return x.url.toLowerCase() === urlLower;
               });
 
@@ -481,11 +488,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (p.start >= u.end) {
                   const segment = clipboardText.substring(u.end, p.start);
                   const newlines = (segment.match(/\n/g) || []).length;
-                  dist = (p.start - u.end) + (newlines * 10000);
+                  dist = (p.start - u.end) + (newlines > 1 ? newlines * 1000 : 0);
                 } else if (u.start >= p.end) {
                   const segment = clipboardText.substring(p.end, u.start);
                   const newlines = (segment.match(/\n/g) || []).length;
-                  dist = (u.start - p.end) + (newlines * 10000);
+                  dist = (u.start - p.end) + (newlines > 1 ? newlines * 1000 : 0);
                 }
                 
                 if (dist < minDistance) {
@@ -594,6 +601,14 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           if (zipRes && zipRes[0]) addResults(zipRes[0].result, 'zip');
         } catch (e) { console.error('Error Zip:', e); }
+
+        // 6. Enlaces Genéricos (Página web)
+        try {
+          const genRes = await new Promise((resolve) => {
+            chrome.scripting.executeScript({ target: { tabId }, func: findGenericLinks }, resolve);
+          });
+          if (genRes && genRes[0]) addResults(genRes[0].result, 'generico');
+        } catch (e) { console.error('Error Enlaces Genéricos:', e); }
 
         currentResults = accumulated;
         displayResults(accumulated);
@@ -1362,6 +1377,139 @@ document.addEventListener('DOMContentLoaded', () => {
     return results;
   }
 
+  // Función inyectada para buscar enlaces genéricos (ej. WhatsApp/Facebook)
+  function findGenericLinks() {
+    const urlRegex = /(https?:\/\/[^\s"'>]+)/gi;
+    const results = [];
+    const seenUrls = new Set();
+    
+    // Filtro inteligente: solo nos interesan enlaces multimedia comunes
+    const isValidMediaLink = (url) => {
+      const u = url.toLowerCase();
+      return u.includes('vimeo.com') || 
+             u.includes('youtube.com') || 
+             u.includes('youtu.be') ||
+             /\.(mp4|mkv|avi|mov|mp3|wav|zip|rar|7z|pdf|epub)$/i.test(u);
+    };
+
+    // Comprobar si un elemento es visible en el área actual de la pantalla (viewport)
+    const isVisibleInViewport = (el) => {
+      if (!el || el.nodeType !== 1) return false;
+      const rect = el.getBoundingClientRect();
+      const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+      const windowWidth = (window.innerWidth || document.documentElement.clientWidth);
+      
+      const vertInView = (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
+      const horzInView = (rect.left <= windowWidth) && ((rect.left + rect.width) >= 0);
+
+      return (vertInView && horzInView && rect.width > 0 && rect.height > 0);
+    };
+
+    const passRegexNode = /(?:password|contrase[ñn]a|clave)[:\s]+([^\s]+)/i;
+
+    // 1. Buscar en el texto SELECCIONADO (por si el usuario subraya algo)
+    const selectedText = window.getSelection().toString();
+    if (selectedText) {
+      const urlsData = [];
+      let match;
+      while ((match = urlRegex.exec(selectedText)) !== null) {
+        if (isValidMediaLink(match[1])) {
+          urlsData.push({ url: match[1], start: match.index, end: match.index + match[1].length, password: null });
+        }
+      }
+      
+      const passRegexGlobal = /(?:password|contrase[ñn]a|clave)[:\s]+([^\s]+)/gi;
+      const passwordsData = [];
+      while ((match = passRegexGlobal.exec(selectedText)) !== null) {
+        passwordsData.push({ pass: match[1], start: match.index, end: match.index + match[0].length });
+      }
+
+      passwordsData.forEach(p => {
+        if (urlsData.length === 0) return;
+        let closestUrl = urlsData[0];
+        let minDistance = Infinity;
+        for (let i = 0; i < urlsData.length; i++) {
+          const u = urlsData[i];
+          let dist = 0;
+          if (p.start >= u.end) {
+            const segment = selectedText.substring(u.end, p.start);
+            const newlines = (segment.match(/\n/g) || []).length;
+            dist = (p.start - u.end) + (newlines > 1 ? newlines * 1000 : 0);
+          } else if (u.start >= p.end) {
+            const segment = selectedText.substring(p.end, u.start);
+            const newlines = (segment.match(/\n/g) || []).length;
+            dist = (u.start - p.end) + (newlines > 1 ? newlines * 1000 : 0);
+          }
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestUrl = u;
+          }
+        }
+        closestUrl.password = p.pass;
+      });
+
+      urlsData.forEach(u => {
+        if (!seenUrls.has(u.url)) {
+          seenUrls.add(u.url);
+          results.push({
+            title: "Enlace en texto seleccionado" + (u.password ? ' 🔒' : ''),
+            url: u.url,
+            password: u.password
+          });
+        }
+      });
+    }
+    
+    // 2. Buscar en atributos href de etiquetas <a> VISIBLES
+    const links = document.querySelectorAll('a');
+    links.forEach(a => {
+      if (a.href && a.href.startsWith('http') && isValidMediaLink(a.href) && !seenUrls.has(a.href)) {
+        if (isVisibleInViewport(a)) {
+          let password = null;
+          
+          // Si es un enlace de Vimeo, buscar contraseñas cercanas en el DOM
+          if (a.href.toLowerCase().includes('vimeo')) {
+            const passRegexNode = /(?:password|contrase[ñn]a|clave)[:\s]+([^\s]+)/i;
+            
+            // Buscar hacia adelante (línea de abajo)
+            let walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+            walker.currentNode = a;
+            let textBuffer = "";
+            let steps = 0;
+            while (walker.nextNode() && steps < 15 && textBuffer.length < 200) {
+              textBuffer += " " + walker.currentNode.textContent;
+              steps++;
+            }
+            const match = textBuffer.match(passRegexNode);
+            if (match) password = match[1].trim();
+            
+            // Buscar hacia atrás (línea de arriba) si no lo encontró abajo
+            if (!password) {
+               walker.currentNode = a;
+               let backBuffer = "";
+               let backSteps = 0;
+               while (walker.previousNode() && backSteps < 5 && backBuffer.length < 100) {
+                 backBuffer = walker.currentNode.textContent + " " + backBuffer;
+                 backSteps++;
+               }
+               const backMatch = backBuffer.match(passRegexNode);
+               if (backMatch) password = backMatch[1].trim();
+            }
+          }
+
+          seenUrls.add(a.href);
+          results.push({
+            title: ((a.innerText || "").replace(/\s+/g, ' ').trim() || "Enlace multimedia visible") + (password ? ' 🔒' : ''),
+            url: a.href,
+            password: password
+          });
+        }
+      }
+    });
+
+    return results;
+  }
+
   // Función inyectada para buscar archivos zip/rar/pdf/etc.
   function findZipDocs() {
     const docExtensions = /\.(zip|rar|7z|pdf|epub|docx|txt)(?:\?.*)?$/i;
@@ -1548,22 +1696,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const contentEl = document.createElement('div');
       contentEl.className = 'item-content';
 
-      const titleEl = document.createElement('div');
-      titleEl.className = 'result-title';
-      titleEl.textContent = video.title || 'Vídeo sin título';
+      const hasLock = video.title && video.title.includes('🔒');
 
-      const linkEl = document.createElement('a');
-      linkEl.href = video.url;
-      linkEl.target = '_blank';
-      linkEl.className = 'result-link';
-      linkEl.textContent = video.url;
-      
+      const titleEl = document.createElement('a');
+      titleEl.className = 'result-title';
+      titleEl.href = video.url;
+      titleEl.target = '_blank';
+      titleEl.style.textDecoration = 'none';
+      titleEl.style.color = 'inherit';
+      titleEl.style.display = 'block';
+      titleEl.style.wordBreak = 'break-all';
+
+      titleEl.textContent = video.url + (hasLock ? ' 🔒' : '');
+
       const externalIcon = document.createElement('span');
       externalIcon.innerHTML = ' ↗';
-      linkEl.appendChild(externalIcon);
+      externalIcon.style.fontSize = '0.8em';
+      externalIcon.style.opacity = '0.7';
+      titleEl.appendChild(externalIcon);
 
       contentEl.appendChild(titleEl);
-      contentEl.appendChild(linkEl);
       
       li.appendChild(cb);
       li.appendChild(contentEl);

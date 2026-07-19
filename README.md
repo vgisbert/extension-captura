@@ -12,27 +12,25 @@ Este proyecto es una extensión de Chrome (Manifest V3) de nivel profesional, ac
 
 ## 🚀 Características y Funcionalidades Principales
 
-La extensión se divide en cuatro motores de búsqueda especializados:
+La extensión se divide en múltiples motores de búsqueda especializados que se ejecutan de forma secuencial:
 
 1. **Buscar Vimeo (Scraper Avanzado)**:
    * Detecta automáticamente reproductores integrados e iframes de Vimeo (incluso en contenedores complejos o privados como Google Sites).
-   * Extrae de forma inteligente el título del vídeo buscando etiquetas de cabecera o textos inmediatamente anteriores en el DOM.
-   * Decodifica entidades HTML (como `&amp;` por `&`) en las URLs capturadas para garantizar enlaces limpios compatibles con `yt-dlp`.
-   * **Detección de Contraseñas Inteligente**: Al importar enlaces desde el portapapeles, soporta múltiples vídeos con contraseñas distintas (ej. "Contraseña: ..."), emparejando automáticamente cada clave con su vídeo correspondiente basándose en su proximidad física en el texto y saltos de línea.
+   * **Detección de Contraseñas Inteligente**: Al capturar enlaces visibles en la página o desde texto seleccionado, el sistema "camina" por la estructura de la página (DOM) hacia arriba y abajo para buscar líneas que contengan contraseñas (ej. "Contraseña: ..."), emparejando matemáticamente cada clave con su vídeo correspondiente en base a la proximidad física.
+   * **Deduplicación Robusta**: Extrae dinámicamente los IDs únicos de Vimeo para evitar duplicados en la lista de resultados, independientemente del formato de la URL (`/video/123` o `vimeo.com/123`).
 
-2. **Buscar Vídeo (Vídeos Directos)**:
-   * Escanea la página activa localizando reproductores nativos `<video>`, etiquetas `<source>` y enlaces directos a ficheros de vídeo (`.mp4`, `.m4v`, `.mkv`, `.mov`, `.webm`, `.avi`, `.flv`, `.ogv`).
-   * Recupera títulos inteligentes del entorno de la página o de reproductores compatibles como `JWPlayer`.
-   * **Nombre Limpio**: Para vídeos directos, el archivo de descarga se guarda en formato limpio (`Título.ext`) sin añadir IDs entre corchetes.
+2. **Captura de Enlaces Genéricos y Multimedia (WhatsApp/Facebook)**:
+   * **Filtro Inteligente**: Escanea todos los enlaces visibles en la pantalla (viewport) y filtra silenciosamente anuncios o basura, quedándose únicamente con direcciones multimedia (YouTube, Vimeo, ficheros `.mp4`, `.zip`, etc.).
+   * **Limpieza de Parámetros**: Elimina automáticamente rastreadores y parámetros innecesarios de las URLs capturadas (como `?share=copy...`) para garantizar descargas limpias.
+   * **Compatibilidad con Texto Seleccionado**: Permite al usuario subrayar texto en la pantalla y la extensión extraerá directamente los enlaces y sus contraseñas asociadas sin necesidad de hacer Ctrl+C.
 
-3. **Buscar Audio (Audios Directos)**:
-   * Localiza reproductores de audio `<audio>`, etiquetas `<source>` y enlaces de descarga a archivos de audio comunes (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac`).
-   * Reutiliza de manera optimizada el mismo motor de descarga secuencial de `yt-dlp` para ofrecer la barra de progreso y descarga limpia de archivos de audio.
+3. **Buscar Vídeo y Audio Directos**:
+   * Escanea la página activa localizando reproductores nativos `<video>`, `<audio>` y enlaces directos a ficheros (`.mp4`, `.mkv`, `.mp3`, `.wav`, etc.).
+   * Recupera títulos inteligentes del entorno de la página o de reproductores compatibles.
 
 4. **YOU (YouTube & Shorts)**:
    * Captura de manera instantánea el enlace y el título de la pestaña activa en la que te encuentras (sin inyectar scripts al DOM).
-   * Compatible con **vídeos de YouTube** convencionales y con **YouTube Shorts** (`youtube.com/shorts/...`).
-   * Limpia el título del vídeo eliminando de forma automática el sufijo `" - YouTube"`.
+   * Compatible con **vídeos de YouTube** convencionales y **YouTube Shorts**.
 
 ---
 
