@@ -54,8 +54,15 @@ La extensión se divide en múltiples motores de búsqueda especializados que se
 * **Cancelar Descarga**:
   * Detiene de manera inmediata el proceso de descarga activo limpiando la cola restante mediante la finalización forzada del árbol de procesos (`taskkill /pid [pid] /f /t` en Windows).
   * **Limpieza Automática**: Borra automáticamente los archivos temporales e incompletos (como extensiones `.part`, `.ytdl`, `.temp`, etc.) generados por la descarga activa para no dejar basura en tu carpeta.
-* **Copiar a Portapapeles (TSV)**:
-  * Permite copiar de golpe los elementos marcados con un formato especial de tabuladores (`Título \t \t URL`) ideal para pegar de manera directa y ordenada en Microsoft Excel o Google Sheets.
+* **Copiar a Portapapeles (TSV) Avanzado**:
+  * Permite copiar de golpe los elementos marcados con un formato de tabuladores inteligente para Microsoft Excel o Google Sheets.
+  * Respeta rígidamente 4 columnas básicas: `Título limpio (sin saltos de línea)` \t `URL de la Página` \t `URL de Descarga` \t `Nombre del archivo (.mp4, .zip, etc.)`.
+  * **Motor de Extracción de Descripción**: Si la página web origen contiene un campo "Descripción:", el sistema lo detectará automáticamente y añadirá una 5ª columna con la descripción plana (sin saltos de línea) para mantener tus bases de datos perfectamente documentadas.
+* **Interfaz Simplificada y Portapapeles**:
+  * Un único botón naranja ("ANALIZAR") agrupa de manera inteligente todas las búsquedas.
+  * Dispone de un botón secundario (Icono Papelera) para limpiar el portapapeles con un clic antes de iniciar el trabajo de captura.
+* **Compatibilidad Universal de Caracteres**:
+  * Integración mejorada que soporta carpetas, nombres de archivo y enlaces con acentos, tildes (é, í, ñ) o caracteres especiales mediante el uso nativo de UTF-8 entre Windows y Node.js.
 * **Registro (Log) Global**:
   * El servidor genera y mantiene un archivo `server.log` con todo el historial de operaciones y posibles errores, lo que facilita enormemente el diagnóstico de fallos.
 

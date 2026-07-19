@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAudio = document.getElementById('btn-audio');
   const btnZip = document.getElementById('btn-zip');
   const btnTodo = document.getElementById('btn-todo');
+  const btnClearClipboard = document.getElementById('btn-clear-clipboard');
   const btnCopyAll = document.getElementById('btn-copy-all');
   const btnStartDownload = document.getElementById('btn-start-download');
   const btnOpenFolder = document.getElementById('btn-open-folder');
@@ -385,6 +386,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Evento borrar portapapeles
+  if (btnClearClipboard) {
+    btnClearClipboard.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('');
+        if (instructionDisplay) {
+          const originalText = instructionDisplay.textContent;
+          instructionDisplay.textContent = '¡Portapapeles borrado!';
+          setTimeout(() => {
+            instructionDisplay.textContent = originalText;
+          }, 2000);
+        }
+      } catch (err) {
+        showError('No se pudo borrar el portapapeles: ' + err.message);
+      }
+    });
+  }
+
   // Evento buscar TODO
   if (btnTodo) {
     btnTodo.addEventListener('click', async () => {
@@ -418,9 +437,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const addResults = (list, searchType) => {
           if (list && Array.isArray(list)) {
             list.forEach(item => {
-              // Limpiar query params de la URL (?share=copy...)
+              // Limpiar SÓLO parámetros de rastreo innecesarios sin romper la URL (ej. ?sequence=1)
               if (item.url && item.url.includes('?')) {
-                item.url = item.url.split('?')[0];
+                try {
+                  const urlObj = new URL(item.url);
+                  const paramsToRemove = ['share', 'compartir', 'fl', 'fe', 'fbclid', 'utm_source'];
+                  paramsToRemove.forEach(p => urlObj.searchParams.delete(p));
+                  item.url = urlObj.toString();
+                } catch(e) {
+                  // Si la URL no es parseable, no la tocamos
+                }
               }
               const urlLower = item.url.toLowerCase();
               let vimeoId = null;
@@ -620,9 +646,60 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Copiar todo a TSV (solo los marcados)
-  btnCopyAll.addEventListener('click', () => {
+  btnCopyAll.addEventListener('click', async () => {
     const checkedBoxes = resultsList.querySelectorAll('.item-checkbox:checked');
     if (checkedBoxes.length === 0) return;
+
+    let pageUrl = '';
+    let pageDescription = '';
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url && !tab.url.startsWith('chrome://')) {
+        pageUrl = tab.url;
+        
+        // Extraer descripción de la página
+        try {
+          const descRes = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              // Intento 1: DOM Elements
+              const elements = document.querySelectorAll('dt, strong, b, span, div');
+              for (let el of elements) {
+                if (el.children.length === 0 && /^descripci[óo]n:?$/i.test(el.textContent.trim())) {
+                  if (el.tagName.toLowerCase() === 'dt' && el.nextElementSibling && el.nextElementSibling.tagName.toLowerCase() === 'dd') {
+                    const txt = el.nextElementSibling.innerText.trim();
+                    return /^(ficheros?|colecciones?|archivos?)/i.test(txt) ? '' : txt;
+                  }
+                  let nextNode = el.nextSibling;
+                  let desc = '';
+                  while (nextNode && desc.length < 1000 && (!nextNode.tagName || !/^(H1|H2|H3|H4|DT|STRONG|B)$/i.test(nextNode.tagName))) {
+                    desc += nextNode.textContent + ' ';
+                    nextNode = nextNode.nextSibling;
+                  }
+                  desc = desc.trim();
+                  if (/^(ficheros?|colecciones?|archivos?):?/i.test(desc)) return '';
+                  if (desc) return desc;
+                }
+              }
+              // Intento 2: Fallback Regex en texto plano
+              const match = document.body.innerText.match(/Descripci[óo]n:\s*([\s\S]{1,1000}?)(?=\n\s*(Ficheros|Colecciones|Archivos|Formato|Tamaño):?|\n\s*\n|$)/i);
+              if (match && match[1]) {
+                const d = match[1].trim();
+                return /^(ficheros?|colecciones?|archivos?)/i.test(d) ? '' : d;
+              }
+              return '';
+            }
+          });
+          if (descRes && descRes[0] && descRes[0].result) {
+            pageDescription = descRes[0].result.replace(/[\t\n\r]+/g, ' ').trim();
+          }
+        } catch (scriptErr) {
+          console.warn('Error extrayendo descripción', scriptErr);
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo obtener la URL de la pestaña', e);
+    }
 
     const urlsToCopy = [];
     checkedBoxes.forEach(cb => {
@@ -631,7 +708,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const tsvContent = urlsToCopy
-      .map(item => `${item.title}\t\t${item.url}`)
+      .map(item => {
+        // MUY IMPORTANTE: Eliminar tabulaciones y saltos de línea ocultos del título que rompen las columnas en Excel
+        let cleanTitle = item.title.replace(/[\t\n\r]+/g, ' ').trim();
+        
+        let ext = 'mp4';
+        const urlWithoutQuery = item.url.split('?')[0];
+        const match = urlWithoutQuery.match(/\.(zip|rar|7z|pdf|epub|docx|txt|mp3|m4a|ogg|wav|aac|flac|mp4)$/i);
+        if (match) {
+          ext = match[1].toLowerCase();
+        }
+        
+        // Limpiar caracteres inválidos para nombres de archivo en Windows
+        let safeTitle = cleanTitle.replace(/[\\/:*?"<>|]/g, '_');
+        let filename = `${safeTitle}.${ext}`;
+        
+        // Separadores respetados: Título <tab> PageUrl <tab> ItemUrl <tab> Filename <tab> PageDescription (Solo si existe)
+        return pageDescription 
+          ? `${cleanTitle}\t${pageUrl}\t${item.url}\t${filename}\t${pageDescription}`
+          : `${cleanTitle}\t${pageUrl}\t${item.url}\t${filename}`;
+      })
       .join('\n');
 
     // Función auxiliar de copia robusta con fallback

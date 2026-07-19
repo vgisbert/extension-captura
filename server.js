@@ -137,7 +137,16 @@ function startNextDownload() {
     args.push('--referer', currentItem.referrer);
   }
 
-  console.log(`Iniciando descarga: ${currentItem.url} en ${targetFolder}`);
+  // Solucionar el problema de traducción de caracteres (doble codificación)
+  // Al decodificar (%c3%ad -> í), yt-dlp recibe el caracter nativo y no lo rompe
+  let finalUrl = currentItem.url;
+  try {
+    finalUrl = decodeURI(currentItem.url);
+  } catch(e) {}
+  
+  args[0] = finalUrl;
+
+  console.log(`Iniciando descarga: ${finalUrl} en ${targetFolder}`);
   console.log(`Comando completo: yt-dlp.exe ${args.join(' ')}`);
   const envVars = Object.assign({}, process.env);
   envVars.PATH = `${__dirname};${envVars.PATH || ''}`;
@@ -239,6 +248,7 @@ const server = http.createServer((req, res) => {
   // Ruta para abrir el diálogo nativo de Windows y seleccionar carpeta
   if (req.url === '/api/select-folder' && req.method === 'POST') {
     const psScript = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 $f = New-Object System.Windows.Forms.FolderBrowserDialog
 $f.Description = 'Selecciona la carpeta de descarga'
@@ -256,7 +266,7 @@ $form.Dispose()
 `;
     const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
     
-    exec(`powershell -Sta -NoProfile -WindowStyle Hidden -EncodedCommand ${b64}`, (error, stdout, stderr) => {
+    exec(`powershell -Sta -NoProfile -WindowStyle Hidden -EncodedCommand ${b64}`, { encoding: 'utf8' }, (error, stdout, stderr) => {
       if (error) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
