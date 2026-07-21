@@ -144,6 +144,14 @@ function startNextDownload() {
     finalUrl = decodeURI(currentItem.url);
   } catch(e) {}
   
+  // Parche para videos de Vimeo con hash (evita el error 401 del API macos)
+  const vimeoRegex = /^https?:\/\/(?:www\.)?vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)\/?/;
+  const match = finalUrl.match(vimeoRegex);
+  if (match) {
+    finalUrl = `https://player.vimeo.com/video/${match[1]}?h=${match[2]}`;
+    console.log(`[yt-dlp] URL de Vimeo adaptada para el reproductor: ${finalUrl}`);
+  }
+
   args[0] = finalUrl;
 
   console.log(`Iniciando descarga: ${finalUrl} en ${targetFolder}`);

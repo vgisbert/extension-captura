@@ -18,6 +18,7 @@ La extensión se divide en múltiples motores de búsqueda especializados que se
    * Detecta automáticamente reproductores integrados e iframes de Vimeo (incluso en contenedores complejos o privados como Google Sites).
    * **Detección de Contraseñas Inteligente**: Al capturar enlaces visibles en la página o desde texto seleccionado, el sistema "camina" por la estructura de la página (DOM) hacia arriba y abajo para buscar líneas que contengan contraseñas (ej. "Contraseña: ..."), emparejando matemáticamente cada clave con su vídeo correspondiente en base a la proximidad física.
    * **Deduplicación Robusta**: Extrae dinámicamente los IDs únicos de Vimeo para evitar duplicados en la lista de resultados, independientemente del formato de la URL (`/video/123` o `vimeo.com/123`).
+   * **Parche Antibloqueo (API macOS 401)**: El servidor intercepta los enlaces de Vimeo con hash privado (`vimeo.com/ID/HASH`) y los transforma dinámicamente al formato de reproductor (`player.vimeo.com`) antes de enviarlos a yt-dlp. Esto puentea el error *401 Unauthorized* causado por la reciente rotación de claves del cliente de macOS de Vimeo.
 
 2. **Captura de Enlaces Genéricos y Multimedia (WhatsApp/Facebook)**:
    * **Filtro Inteligente**: Escanea todos los enlaces visibles en la pantalla (viewport) y filtra silenciosamente anuncios o basura, quedándose únicamente con direcciones multimedia (YouTube, Vimeo, ficheros `.mp4`, `.zip`, etc.).

@@ -7,6 +7,10 @@ echo  Iniciando Servidor de Descargas para Chrome Extension
 echo ======================================================
 echo.
 
+echo Buscando actualizaciones de yt-dlp...
+yt-dlp.exe -U
+echo.
+
 :: Verificar si Node.js está instalado global o localmente
 set NODE_CMD=node
 if exist node.exe (
