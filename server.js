@@ -94,7 +94,9 @@ function startNextDownload() {
     '--ffmpeg-location', __dirname,
     '--merge-output-format', 'mp4',
     '--no-check-certificate',
-    '--no-playlist'
+    '--no-playlist',
+    '--no-js-runtimes',
+    '--js-runtimes', 'node'
   ];
 
   if (currentItem.password) {
