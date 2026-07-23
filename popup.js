@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const resultsCount = document.getElementById('results-count');
   const instructionDisplay = document.getElementById('instruction-display');
   const downloadDirInput = document.getElementById('download-dir');
+  const downloadSubsOnlyCheckbox = document.getElementById('download-subs-only');
   
   // Elementos de progreso
   const progressContainer = document.getElementById('progress-container');
@@ -843,7 +844,8 @@ document.addEventListener('DOMContentLoaded', () => {
           downloadDir: downloadDir,
           addIdInBrackets: (currentSearchType === 'vimeo'),
           referrer: referrer,
-          cookies: cookiesPayload
+          cookies: cookiesPayload,
+          downloadSubsOnly: downloadSubsOnlyCheckbox ? downloadSubsOnlyCheckbox.checked : false
         })
       });
 

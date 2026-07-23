@@ -107,6 +107,10 @@ function startNextDownload() {
     args.push('--extract-audio', '--audio-format', 'mp3');
   }
 
+  if (currentItem.downloadSubsOnly) {
+    args.push('--write-subs', '--write-auto-subs', '--skip-download');
+  }
+
   let tempCookieFile = null;
   if (currentItem.cookies === 'NONE') {
     console.log('[yt-dlp] Configurado para descargar SIN cookies (Modo anónimo).');
@@ -147,15 +151,15 @@ function startNextDownload() {
   } catch(e) {}
   
   // Parche para videos de Vimeo (evita el error 401 del API macos en videos privados o con contraseña)
-  const vimeoRegex = /^https?:\/\/(?:www\.)?vimeo\.com\/(\d+)(?:\/([a-zA-Z0-9]+))?\/?/;
-  const match = finalUrl.match(vimeoRegex);
-  if (match) {
-    if (match[2]) {
-      finalUrl = `https://player.vimeo.com/video/${match[1]}?h=${match[2]}`;
+  const vimeoMatch = finalUrl.match(/vimeo\.com(?:\/video)?\/(\d+)(?:\/([a-zA-Z0-9]+))?\/?/i);
+  if (vimeoMatch) {
+    if (vimeoMatch[2]) {
+      finalUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}?h=${vimeoMatch[2]}`;
     } else {
-      finalUrl = `https://player.vimeo.com/video/${match[1]}`;
+      finalUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
     }
     console.log(`[yt-dlp] URL de Vimeo adaptada para el reproductor: ${finalUrl}`);
+    args.push('--extractor-args', 'vimeo:client=web;api_key=');
   }
 
   args[0] = finalUrl;
@@ -218,8 +222,89 @@ function startNextDownload() {
       }
     }
 
+// Conversión VTT a TXT basado en el script de Python
+function convertVttToTxt(vttPath) {
+  try {
+    const txtPath = vttPath.replace(/\.vtt$/i, '.txt');
+    if (fs.existsSync(txtPath)) {
+      const vttStat = fs.statSync(vttPath);
+      const txtStat = fs.statSync(txtPath);
+      if (txtStat.mtime > vttStat.mtime) {
+        return; // El TXT ya está actualizado
+      }
+    }
+
+    const content = fs.readFileSync(vttPath, 'utf8');
+    const lines = content.split(/\r?\n/);
+    const cleanLines = [];
+    
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+      if (line.startsWith('WEBVTT') || line.startsWith('Kind:') || line.startsWith('Language:')) continue;
+      if (line.includes('-->')) continue;
+      if (/^\d+$/.test(line)) continue;
+      
+      line = line.replace(/<[^>]+>/g, '');
+      line = line.replace(/&nbsp;/g, ' ');
+      line = line.replace(/&amp;/g, '&');
+      
+      // Eliminar corchetes como [music], [singing], etc.
+      line = line.replace(/\[.*?\]/g, '');
+      // Eliminar caracteres >> o &gt;
+      line = line.replace(/&gt;/ig, '');
+      line = line.replace(/>+/g, '');
+      
+      line = line.trim();
+      if (!line) continue;
+      
+      // Evitar líneas duplicadas consecutivas (típico en auto-subs de YouTube)
+      if (cleanLines.length > 0 && cleanLines[cleanLines.length - 1] === line) {
+        continue;
+      }
+      
+      cleanLines.push(line);
+    }
+    
+    let finalText = cleanLines.join(' ');
+    
+    finalText = finalText.replace(/\s+/g, ' ').trim();
+    finalText = finalText.replace(/\s+([.,?!])/g, '$1');
+    finalText = finalText.replace(/([.,?!])(?=[^\s.,?!"')\]}])/g, '$1 ');
+    
+    if (finalText.length > 0) {
+      finalText = finalText.charAt(0).toUpperCase() + finalText.slice(1);
+    }
+    
+    finalText = finalText.replace(/([.!?¿¡]\s*)([a-zñáéíóúü])/g, (match, p1, p2) => {
+      return p1 + p2.toUpperCase();
+    });
+    
+    fs.writeFileSync(txtPath, finalText, 'utf8');
+    console.log(`[VTT] Convertido: '${vttPath}' -> '${txtPath}'`);
+  } catch (err) {
+    console.error(`[VTT] Error convirtiendo ${vttPath}:`, err);
+  }
+}
+
+function processVttFiles(directory) {
+  try {
+    if (!fs.existsSync(directory)) return;
+    const files = fs.readdirSync(directory);
+    for (const file of files) {
+      if (file.toLowerCase().endsWith('.vtt')) {
+        const vttPath = path.join(directory, file);
+        convertVttToTxt(vttPath);
+      }
+    }
+  } catch (err) {
+    console.error('Error procesando archivos VTT:', err);
+  }
+}
+
     if (code === 0) {
       downloadState.completedUrls.push(currentItem.url);
+      processVttFiles(targetFolder);
       // Continuar con el siguiente
       startNextDownload();
     } else {
@@ -346,7 +431,8 @@ $form.Dispose()
             addIdInBrackets: addId,
             referrer: data.referrer || '',
             cookies: data.cookies || '',
-            password: pass
+            password: pass,
+            downloadSubsOnly: !!data.downloadSubsOnly
           };
         });
         downloadState.total = downloadQueue.length;

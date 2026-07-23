@@ -43,6 +43,9 @@ La extensión se divide en múltiples motores de búsqueda especializados que se
 * **Fijar Ruta y Abrir Carpeta (Botón 📁)**:
   * Escribe o examina la carpeta local en la que deseas guardar tus archivos.
   * Pulsa el botón de carpeta al lado de iniciar descarga para **abrir directamente el explorador de archivos en la carpeta de destino** (creándola de forma automática si no existe).
+* **Descarga de Subtítulos Inteligente**:
+  * Incluye una opción "Descargar sólo subtítulos (si existen)" que recupera de manera automática los subtítulos del vídeo (incluso los autogenerados de YouTube) sin descargar el archivo de vídeo pesado.
+  * **Conversión Transparente a TXT**: Al descargar subtítulos (VTT), el servidor los procesa de forma nativa para eliminar etiquetas HTML, marcas de tiempo, corchetes (ej. `[music]`), símbolos de diálogo y repeticiones. Genera de forma automática un archivo de texto plano (`.txt`) limpio y perfectamente formateado, justo al lado de la descarga.
 * **Fusión Garantizada a MP4**:
   * El servidor local llama a `yt-dlp` configurándolo con la opción `--merge-output-format mp4` para empaquetar de forma transparente el mejor audio y vídeo disponible utilizando `ffmpeg.exe`.
 * **Solución de Retos de JavaScript (Anti-Bot de YouTube)**:
