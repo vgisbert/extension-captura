@@ -146,11 +146,15 @@ function startNextDownload() {
     finalUrl = decodeURI(currentItem.url);
   } catch(e) {}
   
-  // Parche para videos de Vimeo con hash (evita el error 401 del API macos)
-  const vimeoRegex = /^https?:\/\/(?:www\.)?vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)\/?/;
+  // Parche para videos de Vimeo (evita el error 401 del API macos en videos privados o con contraseña)
+  const vimeoRegex = /^https?:\/\/(?:www\.)?vimeo\.com\/(\d+)(?:\/([a-zA-Z0-9]+))?\/?/;
   const match = finalUrl.match(vimeoRegex);
   if (match) {
-    finalUrl = `https://player.vimeo.com/video/${match[1]}?h=${match[2]}`;
+    if (match[2]) {
+      finalUrl = `https://player.vimeo.com/video/${match[1]}?h=${match[2]}`;
+    } else {
+      finalUrl = `https://player.vimeo.com/video/${match[1]}`;
+    }
     console.log(`[yt-dlp] URL de Vimeo adaptada para el reproductor: ${finalUrl}`);
   }
 
